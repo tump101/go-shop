@@ -1,22 +1,16 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"math"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 
-func envPath() string {
-	if len(os.Args) == 1 {
-		return ".env"
-	} else {
-		return os.Args[1]
-	}
-}
+
 
 func LoadConfig(path string) IConfig {
 	envMap, err := godotenv.Read(path)
@@ -123,7 +117,15 @@ type IConfig interface {
 }
 
 type IAppConfig interface {
+	Url() string //hort:port
+	Name() string
+	Version() string
+	ReadtTimeout() time.Duration
+	WriteTimeout() time.Duration
+	BodyLimit() int
+	Gcpbucket() string
 }
+
 type app struct {
 	host         string
 	port         int
@@ -137,10 +139,19 @@ type app struct {
 }
 
 func (c *config) App() IAppConfig {
-	return nil
+	return c.app
 }
+func (a *app) Url() string                 { return fmt.Sprintf("%s:%d",a.host,a.port) } //hort:port
+func (a *app) Name() string                { return a.name }
+func (a *app) Version() string             { return a.version }
+func (a *app) ReadtTimeout() time.Duration { return a.readTimeout }
+func (a *app) WriteTimeout() time.Duration { return a.writeTimeout }
+func (a *app) BodyLimit() int              { return a.bodyLimit }
+func (a *app) Gcpbucket() string           { return a.gcpbucket }
 
 type IDbConfig interface {
+	Url() string
+	Maxconnections() int
 }
 type db struct {
 	host           string
@@ -154,10 +165,22 @@ type db struct {
 }
 
 func (c *config) Db() IDbConfig {
-	return nil
+	return c.db
 }
+func (b *db) Url() string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		b.host, b.port, b.username, b.password, b.database, b.sslMode)
+}
+func (b *db) Maxconnections() int { return b.maxConnections }
 
 type IJwtConfig interface {
+	SecertKey() []byte
+	AdminKey() []byte
+	ApiKey() []byte
+	AccessExpiresAt() int
+	RefreshExpiresAt() int
+	SetJwtAccessExpires(t int)
+	SetJwtRefreshExpires(t int)
 }
 type jwt struct {
 	secertKey        string
@@ -168,5 +191,13 @@ type jwt struct {
 }
 
 func (c *config) Jwt() IJwtConfig {
-	return nil
+	return c.jwt
 }
+
+func (j *jwt) SecertKey() []byte          { return []byte(j.secertKey) }
+func (j *jwt) AdminKey() []byte           { return []byte(j.adminKey) }
+func (j *jwt) ApiKey() []byte             { return []byte(j.apiKey) }
+func (j *jwt) AccessExpiresAt() int       { return j.accessExpiresAt }
+func (j *jwt) RefreshExpiresAt() int      { return j.refreshExpiresAt }
+func (j *jwt) SetJwtAccessExpires(t int)  { j.accessExpiresAt = t }
+func (j *jwt) SetJwtRefreshExpires(t int) { j.refreshExpiresAt = t }
